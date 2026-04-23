@@ -1,0 +1,272 @@
+[
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"stats-band\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"stats-band--split-accent\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"stats-band-grid\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"stats-band-item\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"stats-band-value\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"stats-band-label\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"logo-marquee-item\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"logo-marquee-item-text\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"section--overlay-mesh\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"section--overlay-glow\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"section--overlay-orb\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"section--overlay-grid\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "app/page.tsx",
+    "message": "className \"section--overlay-spotlight\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/AnimatedCounter.tsx",
+    "message": "className \"stats-band-value\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/FaqAccordion.tsx",
+    "message": "className \"faq-item\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/FaqAccordion.tsx",
+    "message": "className \"faq-question\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/FaqAccordion.tsx",
+    "message": "className \"faq-icon\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/FaqAccordion.tsx",
+    "message": "className \"faq-answer-wrap\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/FaqAccordion.tsx",
+    "message": "className \"faq-answer\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/Footer.tsx",
+    "message": "className \"footer-tagline\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/Footer.tsx",
+    "message": "className \"footer-link\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/HomeHero.tsx",
+    "message": "className \"hero--dark-gradient\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/HomeHero.tsx",
+    "message": "className \"hero-inner\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/HomeHero.tsx",
+    "message": "className \"hero-eyebrow\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/HomeHero.tsx",
+    "message": "className \"hero-title\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/HomeHero.tsx",
+    "message": "className \"hero-subtitle\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/HomeHero.tsx",
+    "message": "className \"hero-cta-row\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/HorizontalScroller.tsx",
+    "message": "className \"scroll-row-btn\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/HorizontalScroller.tsx",
+    "message": "className \"scroll-row-btn-left\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/HorizontalScroller.tsx",
+    "message": "className \"scroll-row\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/HorizontalScroller.tsx",
+    "message": "className \"scroll-row-btn-right\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/LogoMarquee.tsx",
+    "message": "className \"logo-marquee-item\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/LogoMarquee.tsx",
+    "message": "className \"logo-marquee-item-text\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/LogoMarquee.tsx",
+    "message": "className \"logo-marquee-track\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/MotionReveal.tsx",
+    "message": "className \"features-section\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/Nav.tsx",
+    "message": "className \"nav-drawer-backdrop\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/Nav.tsx",
+    "message": "className \"nav-drawer-close\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/Nav.tsx",
+    "message": "className \"nav-drawer-cta\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/Nav.tsx",
+    "message": "className \"nav-links\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/Nav.tsx",
+    "message": "className \"nav-link\" used but not defined in globals.css"
+  },
+  {
+    "severity": "medium",
+    "category": "css-drift",
+    "file": "components/Nav.tsx",
+    "message": "className \"nav-hamburger\" used but not defined in globals.css"
+  },
+  {
+    "severity": "high",
+    "category": "dynamism",
+    "file": "app/not-found.tsx",
+    "message": "Underpowered page — only 0 scroll-reveal wrap(s) (need ≥ 3); no interactive primitive (FaqAccordion / HorizontalScroller / AnimatedCounter / AnimatePresence)"
+  },
+  {
+    "severity": "high",
+    "category": "dynamism",
+    "file": "app/privacy/page.tsx",
+    "message": "Underpowered page — only 1 scroll-reveal wrap(s) (need ≥ 3); no interactive primitive (FaqAccordion / HorizontalScroller / AnimatedCounter / AnimatePresence)"
+  },
+  {
+    "severity": "high",
+    "category": "dynamism",
+    "file": "app/sitemap-page/page.tsx",
+    "message": "Underpowered page — only 1 scroll-reveal wrap(s) (need ≥ 3); no interactive primitive (FaqAccordion / HorizontalScroller / AnimatedCounter / AnimatePresence)"
+  },
+  {
+    "severity": "high",
+    "category": "dynamism",
+    "file": "app/terms/page.tsx",
+    "message": "Underpowered page — only 1 scroll-reveal wrap(s) (need ≥ 3); no interactive primitive (FaqAccordion / HorizontalScroller / AnimatedCounter / AnimatePresence)"
+  }
+]

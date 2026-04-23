@@ -1,0 +1,2197 @@
+/* ================================================================
+   MODERN UI SUPPLEMENT (deterministic — appended to globals.css)
+   Injected verbatim by build.ts. Do not edit output — edit modern-ui.ts.
+   ================================================================ */
+
+/* ---------- LAYOUT SAFETY NET ----------
+
+   Every generated site has shipped with at least one horizontal-overflow
+   bug (a bleeding hero image, a translated off-canvas drawer measured as
+   part of the document flow, a 100vw element inside a container with
+   padding). Clip horizontal overflow at the root so nothing the LLM emits
+   can ever produce a horizontally scrollable page — a regression the user
+   has flagged repeatedly. overflow-x: clip is preferred over hidden
+   because it does not create a new containing block for position:fixed
+   descendants (important for the off-canvas nav drawer to stay anchored).
+--------------------------------------- */
+
+html, body {
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+*, *::before, *::after {
+  min-width: 0;
+}
+
+/* ---------- ANIMATIONS ---------- */
+
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(32px);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.animate-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.animate-on-scroll.is-visible > * {
+  animation: modernUIChildFadeUp 620ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes modernUIChildFadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modernUIFadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes modernUIPulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.02); }
+}
+
+@keyframes modernUISpinSlow {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes modernUIHeroGlow {
+  0%   { transform: translate(0, 0) scale(1); opacity: 0.75; }
+  100% { transform: translate(-30px, 30px) scale(1.1); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-on-scroll {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .animate-on-scroll.is-visible > * { animation: none; }
+}
+
+/* ---------- DARK NAVBAR (logo-contrast safety) ----------
+
+   Multiple generated sites shipped with .nav-wrap { background: #fff }
+   AND .nav-link { color: #fff } — invisible white-on-white text. The
+   modern-ui default is a dark gradient + light text so the logo (which
+   the image-acquisition step often returns as a white mark) is legible.
+   Both .nav and .nav-wrap are styled identically so whichever outer
+   class the build agent emits inherits the safe defaults, and both use
+   !important on the background so a stray globals.css rule can't
+   override us into a contrast-failure state.
+---------------------------------------------------------- */
+
+.nav,
+.nav-wrap {
+  background: linear-gradient(
+    180deg,
+    rgba(12, 27, 56, 0.97) 0%,
+    rgba(26, 58, 107, 0.97) 100%
+  ) !important;
+  backdrop-filter: saturate(160%) blur(10px);
+  -webkit-backdrop-filter: saturate(160%) blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  transition: box-shadow 240ms ease, background 240ms ease, height 240ms ease;
+}
+
+html[data-scrolled="true"] .nav,
+html[data-scrolled="true"] .nav-wrap {
+  box-shadow: 0 8px 32px rgba(5, 14, 30, 0.35);
+  background: linear-gradient(
+    180deg,
+    rgba(8, 19, 40, 0.98) 0%,
+    rgba(16, 37, 73, 0.98) 100%
+  ) !important;
+}
+
+.nav-link {
+  color: rgba(255, 255, 255, 0.85) !important;
+  transition: color 180ms ease;
+  position: relative;
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--color-accent, #e8a020);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nav-link:hover,
+.nav-link[aria-current="page"] { color: #ffffff !important; }
+
+.nav-link:hover::after,
+.nav-link[aria-current="page"]::after { transform: scaleX(1); }
+
+.nav-hamburger { color: #ffffff; }
+.nav-logo { color: #ffffff; }
+
+.nav-logo img { transition: transform 240ms ease; }
+.nav-logo:hover img { transform: scale(1.04); }
+
+/* Force the nav logo to render light on the dark nav. Scoped to SVG
+   sources only — a raster logo with a white background would be
+   turned into a featureless white rectangle by invert(1), but SVGs
+   are always drawn from transparent pixels so they come out as a
+   clean light silhouette. Opt-out: add data-logo-native to .nav-logo
+   to keep the original colours (e.g. a brand whose logo is designed
+   for dark backgrounds already). */
+.nav-logo:not([data-logo-native]) img[src$=".svg"],
+.nav-logo:not([data-logo-native]) img[src*=".svg?"] {
+  filter: brightness(0) invert(1);
+}
+
+/* ---------- RESPONSIVE NAV — DESKTOP LINKS vs MOBILE DRAWER ----------
+
+   The build agent consistently generated a Nav that either
+     (a) rendered the desktop links row AND the mobile hamburger at all
+         viewport widths (so the menu looked cluttered), or
+     (b) left the mobile drawer defaulted to visible because its closed
+         state relied only on data-open=false with no fallback, and
+         when globals.css raced modern-ui.css the closed rule was lost.
+
+   Lock both concerns here so the emitted Nav.tsx is safe regardless of
+   what globals.css does. Breakpoint: desktop layout at ≥1024px, mobile
+   drawer below. Everything is scoped to the nav classes we ship in
+   build-agent.md so a stray .nav-links elsewhere doesn't get hidden.
+-------------------------------------------------------------------- */
+
+.nav-links {
+  display: none;
+  align-items: center;
+  gap: clamp(16px, 2vw, 32px);
+}
+
+.nav-hamburger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: transparent;
+  border-radius: 8px;
+  padding: 0;
+  cursor: pointer;
+}
+
+.nav-cta { display: none; }
+
+@media (min-width: 1024px) {
+  .nav-links  { display: flex; }
+  .nav-cta    { display: inline-flex; }
+  .nav-hamburger { display: none; }
+}
+
+/* ---------- OFF-CANVAS MOBILE DRAWER ----------
+
+   Deterministic closed-by-default drawer. The Nav.tsx component the build
+   agent emits toggles data-open between "true" and "false"; every other
+   rule (transform, pointer-events, opacity of the backdrop) lives here so
+   a partial globals.css implementation can't leave the drawer rendered
+   open (past regression: the drawer shipped with only the open state
+   defined, so its default transform was none and it occluded the page).
+
+   On desktop we force the drawer off-screen regardless of data-open so a
+   stuck open=true state from a hydration hiccup can never block the
+   viewport — only viewports below 1024px can ever show the drawer.
+------------------------------------------------ */
+
+/* z-index 2147483646/7 is max-int-1/max-int — the drawer uses them so it
+   ALWAYS stacks above anything the LLM emits (sticky CTAs, animated
+   orbs, modal overlays). Past regression: drawer rendered at z:200 got
+   covered by a hero ::before overlay on z:inherit inside a stacking
+   context created by .nav-wrap's backdrop-filter.
+
+   The build-agent.md Nav template renders this into a React portal so
+   nav-wraps backdrop-filter / transform never traps it. The z-index is
+   belt-and-suspenders for any legacy Nav.tsx that still renders inline. */
+.nav-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(360px, 100vw);
+  max-width: 100vw;
+  background: #ffffff;
+  color: var(--color-neutral-900, #0f172a);
+  z-index: 2147483647;
+  padding: clamp(20px, 4vw, 32px);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: -8px 0 24px rgba(15, 23, 42, 0.12);
+  transform: translateX(100%);
+  transition: transform 260ms cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.nav-drawer[data-open="true"] {
+  transform: translateX(0);
+}
+
+.nav-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  z-index: 2147483646;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+
+.nav-drawer-backdrop[data-open="true"] {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.nav-drawer-close {
+  align-self: flex-end;
+  width: 40px; height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-neutral-200, #e5e7eb);
+  border-radius: 8px;
+  background: #ffffff;
+  color: inherit;
+  cursor: pointer;
+}
+
+.nav-drawer-link {
+  display: block;
+  padding: 14px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-neutral-900, #0f172a);
+  border-bottom: 1px solid var(--color-neutral-100, #f3f4f6);
+  text-decoration: none;
+}
+
+.nav-drawer-link:hover,
+.nav-drawer-link:focus-visible {
+  color: var(--color-primary, #1a3a6b);
+}
+
+.nav-drawer-cta { margin-top: auto; }
+
+/* Desktop lockdown: the drawer MUST be hidden on desktop even if
+   data-open is somehow "true". */
+@media (min-width: 1024px) {
+  .nav-drawer,
+  .nav-drawer-backdrop {
+    display: none !important;
+  }
+}
+
+/* ---------- HERO SYSTEM ----------
+
+   The hero renders with EXACTLY ONE variant modifier on the <section>:
+     .hero.hero--dark-gradient
+     .hero.hero--split
+     .hero.hero--asymmetric
+     .hero.hero--offset-card
+     .hero.hero--editorial
+
+   The variant is chosen deterministically per project (see pickHeroVariant
+   in modern-ui.ts). Each variant fully styles the hero — background, layout,
+   typography contrast. The base .hero only provides common positioning so
+   a missing variant does NOT regress to the dark-gradient default.
+----------------------------------- */
+
+.hero,
+.hero-section {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  padding: clamp(64px, 10vw, 128px) 0;
+}
+
+.hero > *,
+.hero-section > * { position: relative; z-index: 2; }
+
+/* Inner container shared by all variants — centers content to viewport width
+   without forcing any specific layout direction. Actual layout (vertical /
+   split / asymmetric / offset-card) is applied by the variant itself. */
+.hero-inner {
+  width: 100%;
+  max-width: var(--spacing-container, 1200px);
+  margin: 0 auto;
+  padding: 0 var(--spacing-md, 24px);
+  display: grid;
+  gap: var(--spacing-xl, 48px);
+  align-items: center;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  margin-bottom: var(--spacing-sm, 16px);
+  color: var(--color-accent, #e8a020);
+}
+
+.hero-eyebrow::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background: currentColor;
+  opacity: 0.8;
+}
+
+.hero-title {
+  font-size: clamp(36px, 5.5vw, 64px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin: 0 0 var(--spacing-sm, 16px);
+}
+
+.hero-subtitle {
+  font-size: clamp(16px, 1.6vw, 19px);
+  line-height: 1.6;
+  margin: 0 0 var(--spacing-md, 24px);
+  max-width: 58ch;
+  opacity: 0.9;
+}
+
+.hero-cta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-sm, 16px);
+  align-items: center;
+}
+
+.hero-media {
+  position: relative;
+  border-radius: var(--radius-xl, 16px);
+  overflow: hidden;
+  box-shadow: 0 30px 60px -20px rgba(3, 11, 30, 0.45);
+}
+
+.hero-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Small + mid-screen hero-media behaviour.
+
+   Three viewport bands, each solving a different problem:
+
+   - Phone (< 600px): hide the media entirely. A stacked 4:5 image
+     pushes the hero CTA four screens down and turns the "hero" into
+     two unrelated blocks.
+
+   - Tablet (600-899px): the two-column variants are still single-
+     column at this range (the 2-col rule only activates at ≥900px),
+     so a naïve layout would render the image full-width underneath
+     the copy — which on the 2026-04-20 stefan-bio-page feedback
+     reads as "the picture is too big when it goes below the text".
+     Instead, flow the media as a max-320px rounded card centred
+     under the copy (never full-bleed). It reads as a complementary
+     accent rather than a secondary hero.
+
+   - Desktop (≥900px): the 2-column layout in each variant takes
+     over; this rule doesn't apply.
+
+   Scoped to the variants that actually have a media column, so a
+   downstream design that repurposes .hero-media for something else
+   (e.g. a decorative SVG) isn't accidentally altered. */
+@media (max-width: 599px) {
+  .hero--split .hero-media,
+  .hero--asymmetric .hero-media,
+  .hero--offset-card .hero-media {
+    display: none;
+  }
+}
+
+@media (min-width: 600px) and (max-width: 899px) {
+  .hero--split .hero-media,
+  .hero--asymmetric .hero-media,
+  .hero--offset-card .hero-media {
+    max-width: 320px;
+    width: 70%;
+    margin: 24px auto 0;
+    aspect-ratio: 4 / 5;
+    min-height: 0;
+    border-radius: var(--radius-xl, 16px);
+    box-shadow: 0 24px 48px -24px rgba(3, 11, 30, 0.35);
+  }
+  /* Kill the asymmetric translateX offset at tablet width — the image is
+     centred and contained, not bleeding off the right edge. */
+  .hero--asymmetric .hero-media { transform: none; }
+}
+
+/* ---- Variant 1 — hero--dark-gradient (centered, navy gradient + grid-mesh) */
+
+.hero.hero--dark-gradient,
+.hero-section.hero--dark-gradient {
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(37, 99, 168, 0.55) 0%, transparent 55%),
+    radial-gradient(ellipse at 90% 90%, rgba(232, 160, 32, 0.22) 0%, transparent 50%),
+    linear-gradient(135deg, #0c1b38 0%, var(--color-primary, #1a3a6b) 45%, #21498a 100%);
+  color: #ffffff;
+  text-align: center;
+}
+
+.hero--dark-gradient .hero-inner {
+  grid-template-columns: 1fr;
+  justify-items: center;
+  text-align: center;
+  max-width: 900px;
+}
+
+.hero--dark-gradient .hero-subtitle {
+  color: rgba(255, 255, 255, 0.85);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.hero--dark-gradient::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 56px 56px;
+  mask-image: radial-gradient(ellipse at center, #000 40%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 40%, transparent 85%);
+  z-index: 1;
+  pointer-events: none;
+}
+
+.hero--dark-gradient::after {
+  content: '';
+  position: absolute;
+  top: -15%;
+  right: -10%;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, rgba(232, 160, 32, 0.25) 0%, rgba(232, 160, 32, 0) 70%);
+  filter: blur(40px);
+  z-index: 1;
+  pointer-events: none;
+  animation: modernUIHeroGlow 9s ease-in-out infinite alternate;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero--dark-gradient::after { animation: none; }
+}
+
+/* ---- Variant 2 — hero--split (copy left, hero media right, light bg) */
+
+.hero.hero--split,
+.hero-section.hero--split {
+  background:
+    linear-gradient(135deg, #ffffff 0%, var(--color-neutral-50, #f8fafc) 100%);
+  color: var(--color-neutral-900, #0f172a);
+}
+
+.hero--split .hero-inner {
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 900px) {
+  .hero--split .hero-inner {
+    grid-template-columns: 1.05fr 1fr;
+    gap: 72px;
+  }
+}
+
+.hero--split .hero-media {
+  aspect-ratio: 4 / 5;
+  min-height: 360px;
+}
+
+@media (min-width: 900px) {
+  .hero--split .hero-media { aspect-ratio: 4 / 4.4; }
+}
+
+.hero--split::before {
+  content: '';
+  position: absolute;
+  bottom: -140px;
+  left: -120px;
+  width: 360px;
+  height: 360px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(37, 99, 168, 0.14) 0%, rgba(37, 99, 168, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero--split::after {
+  content: '';
+  position: absolute;
+  top: 30%;
+  right: 46%;
+  width: 1px;
+  height: 40%;
+  background: linear-gradient(180deg, transparent 0%, var(--color-accent, #e8a020) 50%, transparent 100%);
+  opacity: 0.5;
+  z-index: 0;
+}
+
+@media (max-width: 899px) {
+  .hero--split::after { display: none; }
+}
+
+/* ---- Variant 3 — hero--asymmetric (dark bg, off-bleed hero image on right) */
+
+.hero.hero--asymmetric,
+.hero-section.hero--asymmetric {
+  background:
+    linear-gradient(100deg, #0c1b38 0%, var(--color-primary, #1a3a6b) 55%, #21498a 100%);
+  color: #ffffff;
+}
+
+.hero--asymmetric .hero-inner {
+  grid-template-columns: 1fr;
+  gap: var(--spacing-xl, 48px);
+}
+
+@media (min-width: 900px) {
+  .hero--asymmetric .hero-inner {
+    grid-template-columns: 1.1fr 1fr;
+    max-width: none;
+    padding-left: clamp(24px, 6vw, 96px);
+    padding-right: 0;
+  }
+}
+
+.hero--asymmetric .hero-subtitle { color: rgba(255, 255, 255, 0.85); }
+
+.hero--asymmetric .hero-media {
+  aspect-ratio: 4 / 5;
+  border-radius: var(--radius-xl, 16px) 0 0 var(--radius-xl, 16px);
+  transform: translateX(0);
+  box-shadow:
+    0 40px 80px -20px rgba(3, 11, 30, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+@media (min-width: 900px) {
+  .hero--asymmetric .hero-media { transform: translateX(8%); }
+}
+
+.hero--asymmetric::before {
+  content: '';
+  position: absolute;
+  top: 40%;
+  left: -20%;
+  width: 520px;
+  height: 520px;
+  background: radial-gradient(circle, rgba(232, 160, 32, 0.22) 0%, transparent 60%);
+  filter: blur(60px);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero--asymmetric::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 100% 64px;
+  mask-image: linear-gradient(90deg, transparent 0%, #000 30%, transparent 70%);
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 30%, transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ---- Variant 4 — hero--offset-card (light bg, content in elevated card) */
+
+.hero.hero--offset-card,
+.hero-section.hero--offset-card {
+  background: var(--color-neutral-50, #f8fafc);
+  color: var(--color-neutral-900, #0f172a);
+  padding-top: clamp(48px, 7vw, 96px);
+  padding-bottom: clamp(96px, 12vw, 160px);
+}
+
+.hero--offset-card .hero-inner {
+  grid-template-columns: 1fr;
+  position: relative;
+}
+
+@media (min-width: 900px) {
+  .hero--offset-card .hero-inner {
+    grid-template-columns: 6fr 5fr;
+    gap: 0;
+  }
+}
+
+.hero--offset-card .hero-content {
+  position: relative;
+  z-index: 3;
+  background: #ffffff;
+  border-radius: var(--radius-xl, 16px);
+  padding: clamp(32px, 4vw, 56px);
+  box-shadow:
+    0 30px 80px -20px rgba(3, 11, 30, 0.15),
+    0 0 0 1px rgba(15, 23, 42, 0.04);
+}
+
+@media (min-width: 900px) {
+  .hero--offset-card .hero-content {
+    margin-right: -12%;
+  }
+}
+
+.hero--offset-card .hero-content::before {
+  content: '';
+  position: absolute;
+  top: -14px;
+  left: -14px;
+  width: 84px;
+  height: 84px;
+  border-radius: var(--radius-lg, 12px);
+  background: linear-gradient(135deg, var(--color-accent, #e8a020) 0%, #f5b53a 100%);
+  z-index: -1;
+}
+
+.hero--offset-card .hero-media {
+  aspect-ratio: 4 / 5;
+  min-height: 380px;
+}
+
+.hero--offset-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 1px 1px, rgba(15, 23, 42, 0.08) 1px, transparent 0);
+  background-size: 24px 24px;
+  mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, transparent 100%);
+  opacity: 0.5;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ---- Variant 5 — hero--editorial (minimal light, huge type, accent underline) */
+
+.hero.hero--editorial,
+.hero-section.hero--editorial {
+  background: #ffffff;
+  color: var(--color-neutral-900, #0f172a);
+  text-align: left;
+  padding: clamp(80px, 11vw, 160px) 0 clamp(48px, 7vw, 96px);
+}
+
+.hero--editorial .hero-inner {
+  grid-template-columns: 1fr;
+  max-width: 1100px;
+}
+
+.hero--editorial .hero-title {
+  font-size: clamp(44px, 7.2vw, 88px);
+  font-weight: 700;
+  line-height: 0.98;
+  letter-spacing: -0.035em;
+  max-width: 18ch;
+}
+
+.hero--editorial .hero-title em,
+.hero--editorial .hero-title .hero-title-accent {
+  font-style: normal;
+  position: relative;
+  white-space: nowrap;
+}
+
+.hero--editorial .hero-title em::after,
+.hero--editorial .hero-title .hero-title-accent::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0.05em;
+  height: 0.22em;
+  background: var(--color-accent, #e8a020);
+  opacity: 0.35;
+  z-index: -1;
+}
+
+.hero--editorial .hero-subtitle {
+  font-size: clamp(17px, 1.7vw, 20px);
+  max-width: 54ch;
+}
+
+.hero--editorial::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -8%;
+  width: 420px;
+  height: 420px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(37, 99, 168, 0.08) 0%, transparent 70%);
+  transform: translateY(-50%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* ---- Hero badge — shared across all variants */
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 14px 6px 6px;
+  margin-bottom: var(--spacing-sm, 16px);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.92);
+  animation: modernUIFadeInUp 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-badge-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--color-accent, #e8a020);
+  color: var(--color-primary, #1a3a6b);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Light-background hero variants need a darker badge for legibility */
+.hero--split .hero-badge,
+.hero--offset-card .hero-badge,
+.hero--editorial .hero-badge {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.08);
+  color: var(--color-neutral-800, #1f2937);
+}
+
+/* ---------- STATS BAND ----------
+
+   Three presentation variants so this section doesn't read as a
+   house-style fingerprint across every site we generate. The build
+   step applies exactly one of:
+     .stats-band.stats-band--gradient-navy   (default — bold dark)
+     .stats-band.stats-band--minimal-light   (restrained, light bg)
+     .stats-band.stats-band--split-accent    (accent-colour wash)
+   Variant picked in modern-ui.ts::pickStatsBandVariant from the same
+   seed logic as pickHeroVariant. The base .stats-band only holds
+   shared geometry — every visible surface is set by a variant. */
+
+.stats-band {
+  padding: var(--spacing-xl, 48px) 0;
+  position: relative;
+  overflow: hidden;
+}
+
+/* ── Variant 1: gradient-navy (the legacy look, kept as default) ── */
+.stats-band.stats-band--gradient-navy,
+/* base selector kept so sites emitted before the variant system land in
+   a safe default rather than unstyled. */
+.stats-band:not(.stats-band--minimal-light):not(.stats-band--split-accent):not(.stats-band--editorial-mono) {
+  background: linear-gradient(135deg, #0f2347 0%, var(--color-primary, #1a3a6b) 100%);
+  color: #ffffff;
+}
+
+.stats-band.stats-band--gradient-navy::before,
+.stats-band:not(.stats-band--minimal-light):not(.stats-band--split-accent):not(.stats-band--editorial-mono)::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(232, 160, 32, 0.18), transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(37, 99, 168, 0.3), transparent 55%);
+  pointer-events: none;
+}
+
+/* ── Variant 2: minimal-light — used by editorial / personal bio / B2B
+   sites where the dark navy band reads as corporate overreach. ── */
+.stats-band.stats-band--minimal-light {
+  background: var(--color-neutral-50, #f8fafc);
+  color: var(--color-neutral-900, #0f172a);
+  border-top: 1px solid var(--color-neutral-200, #e5e7eb);
+  border-bottom: 1px solid var(--color-neutral-200, #e5e7eb);
+}
+
+.stats-band.stats-band--minimal-light .stats-band-value {
+  background: none;
+  -webkit-text-fill-color: var(--color-primary, #1a3a6b);
+  color: var(--color-primary, #1a3a6b);
+}
+
+.stats-band.stats-band--minimal-light .stats-band-label {
+  color: var(--color-neutral-600, #4b5563);
+}
+
+.stats-band.stats-band--minimal-light .stats-band-item { border-left-color: var(--color-neutral-200, #e5e7eb); }
+@media (max-width: 767px) {
+  .stats-band.stats-band--minimal-light .stats-band-item {
+    border-top-color: var(--color-neutral-200, #e5e7eb);
+  }
+}
+
+/* ── Variant 3: split-accent — accent-colour wash with subtle grain. ── */
+.stats-band.stats-band--split-accent {
+  background:
+    linear-gradient(
+      120deg,
+      var(--color-accent, #e8a020) 0%,
+      var(--color-primary, #1a3a6b) 55%,
+      var(--color-secondary, #2563a8) 100%
+    );
+  color: #ffffff;
+}
+
+.stats-band.stats-band--split-accent::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.12), transparent 45%),
+    repeating-linear-gradient(45deg, rgba(255, 255, 255, 0.02) 0 2px, transparent 2px 6px);
+  pointer-events: none;
+}
+
+/* ── Variant 4: editorial-mono — a restrained mono treatment. Used on
+   editorial / personal / archival sites. Numerals render in serif if a
+   --font-display is defined (common in editorial token packages). ── */
+.stats-band.stats-band--editorial-mono {
+  background: var(--color-neutral-900, #0f172a);
+  color: var(--color-neutral-50, #f8fafc);
+}
+
+.stats-band.stats-band--editorial-mono .stats-band-value {
+  background: none;
+  -webkit-text-fill-color: #ffffff;
+  color: #ffffff;
+  font-family: var(--font-display, var(--font-heading, serif));
+  font-weight: 500;
+}
+
+.stats-band.stats-band--editorial-mono .stats-band-item {
+  border-left-color: rgba(255, 255, 255, 0.1);
+}
+
+.stats-band.stats-band--editorial-mono .stats-band-label {
+  color: rgba(255, 255, 255, 0.6);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 12px;
+}
+
+.stats-band-grid {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-md, 24px);
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .stats-band-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+.stats-band-item {
+  padding: var(--spacing-md, 24px);
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stats-band-item:first-child { border-left: none; }
+
+@media (max-width: 767px) {
+  .stats-band-item {
+    border-left: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    padding-top: var(--spacing-md, 24px);
+  }
+  .stats-band-item:first-child,
+  .stats-band-item:nth-child(2) { border-top: none; padding-top: 0; }
+}
+
+.stats-band-value {
+  font-size: 40px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1;
+  margin-bottom: 6px;
+  background: linear-gradient(180deg, #ffffff 0%, var(--color-accent, #e8a020) 130%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+@media (min-width: 1024px) { .stats-band-value { font-size: 52px; } }
+
+.stats-band-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- SECTION DECORATIVE OVERLAYS ----------
+
+   Optional decorative layers that any <section> can opt into by adding a
+   companion class. Keeps the site from reading as a stack of flat boxes
+   while staying respectful of the chosen overlay budget — a site with
+   decorativeOverlays=minimal should only use these on 1-2 sections; a
+   site set to rich can carry them through the full layout.
+
+   Budget (recommended, enforced in build-agent.md):
+     none:      do not use these classes at all.
+     minimal:   hero ambient only (already in the hero variant CSS).
+     moderate:  hero + 1-2 secondary sections (pick the ones with the most
+                visual breathing room — feature row, stats band, CTA).
+     rich:      every major section can carry one overlay; stagger classes
+                so no two adjacent sections use the same one.
+
+   Classes are append-only on <section>; they use ::before so they never
+   interfere with the sections own content tree. All overlays are
+   pointer-events: none and respect prefers-reduced-motion.
+
+   Container requirement: the <section> must be position: relative (or
+   isolated). Base styles on .section--overlay-* enforce this so a
+   missing position declaration cannot leak the ::before to document root.
+*/
+
+.section--overlay-glow,
+.section--overlay-mesh,
+.section--overlay-orb,
+.section--overlay-grid,
+.section--overlay-spotlight {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+}
+
+.section--overlay-glow > *,
+.section--overlay-mesh > *,
+.section--overlay-orb > *,
+.section--overlay-grid > *,
+.section--overlay-spotlight > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Variant: glow — a soft off-axis radial bloom. Best on otherwise-flat
+   light sections that need warmth without looking decorated. */
+.section--overlay-glow::before {
+  content: '';
+  position: absolute;
+  top: -20%;
+  right: -10%;
+  width: 56%;
+  height: 140%;
+  background: radial-gradient(
+    ellipse at center,
+    var(--color-accent, rgba(232, 160, 32, 0.18)) 0%,
+    transparent 65%
+  );
+  filter: blur(40px);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Variant: mesh — two soft colour blobs reading as a shallow abstract
+   gradient mesh. Works on hero-adjacent sections on dark backgrounds. */
+.section--overlay-mesh::before {
+  content: '';
+  position: absolute;
+  inset: -10%;
+  background:
+    radial-gradient(circle at 18% 22%, rgba(26, 58, 107, 0.22), transparent 55%),
+    radial-gradient(circle at 82% 78%, var(--color-accent, rgba(232, 160, 32, 0.18)) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(30px);
+}
+
+/* Variant: orb — a single focal blurred disc. Use for CTA sections where
+   the orb behind the button draws the eye. */
+.section--overlay-orb::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 520px;
+  height: 520px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--color-primary, #1a3a6b) 0%, transparent 65%);
+  transform: translate(-50%, -50%);
+  opacity: 0.15;
+  filter: blur(24px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Variant: grid — a faint mesh grid mask-faded to a central sweet spot.
+   Tech / dashboard / product sections. */
+.section--overlay-grid::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(15, 23, 42, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.06) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 85%);
+  -webkit-mask-image: radial-gradient(ellipse at center, #000 30%, transparent 85%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Variant: spotlight — a single animated vertical beam. Editorial sites,
+   pull-quote sections. Respects reduced motion. */
+.section--overlay-spotlight::before {
+  content: '';
+  position: absolute;
+  top: -10%;
+  left: 50%;
+  width: 2px;
+  height: 120%;
+  background: linear-gradient(
+    180deg,
+    transparent 0%,
+    var(--color-accent, #e8a020) 50%,
+    transparent 100%
+  );
+  opacity: 0.4;
+  transform: translateX(-50%);
+  animation: modernUISpotlightDrift 6s ease-in-out infinite alternate;
+  pointer-events: none;
+  z-index: 0;
+}
+
+@keyframes modernUISpotlightDrift {
+  from { transform: translateX(-50%); opacity: 0.25; }
+  to   { transform: translateX(-20%); opacity: 0.5; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section--overlay-spotlight::before { animation: none; }
+}
+
+/* ---------- SECTION HEADLINE GRADIENT ---------- */
+
+.section-headline--accent {
+  background: linear-gradient(
+    120deg,
+    var(--color-primary, #1a3a6b) 0%,
+    var(--color-secondary, #2563a8) 70%,
+    var(--color-accent, #e8a020) 140%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* ---------- DIFFERENTIATED PARALLEL SECTIONS ---------- */
+
+.diff-part--alt {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-xl, 48px);
+  align-items: center;
+  margin-block: var(--spacing-xl, 48px);
+  padding: var(--spacing-xl, 48px) 0;
+}
+
+@media (min-width: 900px) {
+  .diff-part--alt {
+    grid-template-columns: 1fr 1fr;
+    gap: 64px;
+  }
+}
+
+.diff-part--alt.diff-part--reverse .diff-part-media { order: 2; }
+
+@media (max-width: 899px) {
+  .diff-part--alt.diff-part--reverse .diff-part-media { order: 0; }
+}
+
+.diff-part-media {
+  position: relative;
+  border-radius: var(--radius-xl, 16px);
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  box-shadow: 0 30px 60px -20px rgba(3, 11, 30, 0.35);
+  transition: transform 450ms ease;
+}
+
+.diff-part-media:hover { transform: translateY(-4px) scale(1.01); }
+
+.diff-part-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 1200ms ease;
+}
+
+.diff-part-media:hover img { transform: scale(1.06); }
+
+.diff-part-media-frame {
+  position: absolute;
+  inset: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-lg, 12px);
+  pointer-events: none;
+}
+
+.diff-part-media-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(26, 58, 107, 0.2) 0%, transparent 55%);
+}
+
+.diff-index {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-accent, #e8a020);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin-bottom: var(--spacing-sm, 16px);
+}
+
+.diff-index-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--color-accent, #e8a020) 0%, #f5b53a 100%);
+  color: var(--color-primary, #1a3a6b);
+  font-size: 14px;
+  font-weight: 700;
+  box-shadow: 0 4px 14px rgba(232, 160, 32, 0.35);
+}
+
+.diff-part--tinted {
+  background: linear-gradient(135deg, #f8fafc 0%, #eef2f9 100%);
+  border-radius: var(--radius-xl, 16px);
+  padding: var(--spacing-xl, 48px);
+}
+
+@media (min-width: 900px) {
+  .diff-part--tinted { padding: var(--spacing-xl, 48px) 48px; }
+}
+
+.diff-stat-inline {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-sm, 16px);
+  padding: var(--spacing-sm, 16px) var(--spacing-md, 24px);
+  background: linear-gradient(
+    135deg,
+    rgba(37, 99, 168, 0.08) 0%,
+    rgba(232, 160, 32, 0.06) 100%
+  );
+  border: 1px solid rgba(37, 99, 168, 0.12);
+  border-radius: var(--radius-md, 8px);
+  margin-block: var(--spacing-md, 24px);
+}
+
+.diff-stat-inline-num {
+  font-size: 36px;
+  font-weight: 700;
+  color: var(--color-primary, #1a3a6b);
+  line-height: 1;
+}
+
+.diff-stat-inline-label {
+  font-size: 14px;
+  color: var(--color-neutral-700, #374151);
+  line-height: 1.4;
+}
+
+/* ---------- FRAMEWORK / FEATURE PILLS ---------- */
+
+.framework-pill-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-block: var(--spacing-md, 24px);
+}
+
+.framework-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 1.5px solid var(--color-neutral-100, #f3f4f6);
+  color: var(--color-primary, #1a3a6b);
+  font-size: 13px;
+  font-weight: 600;
+  transition: all 200ms ease;
+}
+
+.framework-pill:hover {
+  border-color: var(--color-accent, #e8a020);
+  background: rgba(232, 160, 32, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(232, 160, 32, 0.15);
+}
+
+.framework-pill--accent {
+  background: var(--color-primary, #1a3a6b);
+  color: #ffffff;
+  border-color: var(--color-primary, #1a3a6b);
+}
+
+/* ---------- RESOURCE CARD IMAGE ---------- */
+
+.resource-card,
+.blog-card { overflow: hidden; }
+
+.resource-card-media,
+.blog-card-media {
+  position: relative;
+  aspect-ratio: 16 / 10;
+  overflow: hidden;
+  background: var(--color-neutral-100, #f3f4f6);
+}
+
+.resource-card-media img,
+.blog-card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 700ms ease;
+}
+
+.resource-card:hover .resource-card-media img,
+.blog-card:hover .blog-card-media img { transform: scale(1.06); }
+
+.resource-card-media-tag,
+.blog-card-media-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 10px;
+  background: rgba(15, 35, 71, 0.92);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+}
+
+/* ---------- VIDEO SECTION ---------- */
+
+.video-section {
+  padding: var(--spacing-section, 80px) 0;
+  background: #ffffff;
+  position: relative;
+}
+
+.video-section-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-xl, 48px);
+  align-items: center;
+}
+
+@media (min-width: 900px) {
+  .video-section-grid { grid-template-columns: 5fr 6fr; }
+}
+
+.video-player-wrap {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-xl, 16px);
+  overflow: hidden;
+  box-shadow:
+    0 30px 60px -20px rgba(3, 11, 30, 0.35),
+    0 12px 24px -6px rgba(3, 11, 30, 0.2);
+  background: #0f2347;
+  transition: transform 400ms ease, box-shadow 400ms ease;
+}
+
+.video-player-wrap:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 40px 80px -20px rgba(3, 11, 30, 0.45),
+    0 16px 28px -6px rgba(3, 11, 30, 0.25);
+}
+
+.video-player-wrap iframe,
+.video-player-wrap video {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+}
+
+/* ---------- SECTION BACKGROUND VIDEO ----------
+
+   Every generated site before this rule rendered video as a sibling
+   block stacked above or below the section's copy — the user's
+   repeated feedback was "the video and the section stack on top of
+   each other, it looks weird and doesn't belong." This pattern fixes
+   it deterministically: any video meant to sit *behind* a section
+   goes in a <div className="section-video-bg"> inside the section,
+   and the section itself carries position:relative + overflow:hidden
+   so the video fills the entire panel and the copy reads on top.
+
+   Video inventory entries whose placement mentions "background",
+   "behind", "ambient", "texture", or "full-bleed" MUST use this
+   pattern (see build-agent.md). Pair with .section--overlay-* for
+   a tint layer if the copy is hard to read on raw video.
+------------------------------------------------ */
+
+.section-video-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.section-video-bg video,
+.section-video-bg iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.28;
+  mix-blend-mode: screen;
+  border: 0;
+  display: block;
+}
+
+/* A contrast veil over the video so headings stay readable regardless
+   of the source clip's brightness. */
+.section-video-bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(10, 15, 30, 0.55) 0%,
+    rgba(10, 15, 30, 0.35) 50%,
+    rgba(10, 15, 30, 0.6) 100%
+  );
+  pointer-events: none;
+}
+
+/* When section-video-bg lives inside a section, make sure the
+   section's direct children still render above it. */
+section:has(> .section-video-bg) > :not(.section-video-bg) {
+  position: relative;
+  z-index: 1;
+}
+
+/* Legacy/convenience classes the build agent has emitted in past runs.
+   When the agent wraps a background video in one of these ad-hoc
+   containers instead of .section-video-bg, the container AND its
+   video descendant both get forced into the background-element
+   position so the "video stacks on top of the section" bug can't
+   ship. The parent sections/containers below get position:relative
+   so the absolute positioning anchors to them, not to document body. */
+.pipeline-video-bg,
+.cta-video-bg,
+.indictment-media,
+.indictment-media video,
+.pipeline-video-bg video,
+.cta-video-bg video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 0;
+  pointer-events: none;
+  object-fit: cover;
+  opacity: 0.22;
+  mix-blend-mode: screen;
+}
+
+/* Ensure the ancestor sections and wrapper divs create a positioning
+   context so the absolute-positioned video children anchor to them.
+   Without this, an '.indictment-media' inside '.indictment-inner' that
+   has position:static would anchor to <body>, filling the whole page
+   with the video. */
+.indictment,
+.indictment-inner,
+.pipeline-section,
+.results-section,
+.services-section,
+.pricing-section,
+.resources-section,
+.cta-section,
+section.section {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Any <video> that is a DIRECT CHILD of a <section> (not wrapped in
+   .video-player-wrap) is almost certainly meant to be a background,
+   not a stacked block — force-position it as one so the "video first,
+   then section content" visual bug cannot ship. */
+section > video:not([data-foreground]):not(.video-player-wrap video) {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.22;
+  z-index: 0;
+  pointer-events: none;
+}
+
+section:has(> video:not([data-foreground]):not(.video-player-wrap video)) {
+  position: relative;
+  overflow: hidden;
+}
+
+.video-caption-strip {
+  display: flex;
+  gap: var(--spacing-sm, 16px);
+  margin-top: var(--spacing-md, 24px);
+  flex-wrap: wrap;
+}
+
+.video-caption-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: rgba(37, 99, 168, 0.08);
+  color: var(--color-primary, #1a3a6b);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.video-caption-item svg { color: var(--color-accent, #e8a020); }
+
+/* ---------- ENHANCED CARD HOVER ---------- */
+
+.service-card,
+.pillar-card,
+.feature-card {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 300ms ease,
+    border-color 300ms ease;
+}
+
+.service-card::before,
+.pillar-card::before,
+.feature-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    var(--color-accent, #e8a020),
+    var(--color-secondary, #2563a8)
+  );
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform 400ms ease;
+}
+
+.service-card:hover,
+.pillar-card:hover,
+.feature-card:hover { transform: translateY(-6px); }
+
+.service-card:hover::before,
+.pillar-card:hover::before,
+.feature-card:hover::before { transform: scaleX(1); }
+
+.service-icon-wrap { transition: background-color 260ms ease, color 260ms ease, transform 260ms ease; }
+
+.service-card:hover .service-icon-wrap {
+  background: var(--color-primary, #1a3a6b);
+  color: #ffffff;
+  transform: rotate(-6deg);
+}
+
+/* ---------- TESTIMONIAL GRID (populated cards) ----------
+
+   Every card in a testimonial / customer-story row must be the same
+   height regardless of quote length. Past sites shipped with varying
+   heights because the cards were laid out with display:block and
+   let content dictate size. align-items:stretch on the grid +
+   display:flex + flex-direction:column on each card makes all cards
+   grow to the tallest sibling so the row reads as one unit. The footer
+   of each card (author block) is pinned to the bottom with
+   margin-top:auto so ragged quote lengths don't push the citation
+   into different vertical positions across cards.
+--------------------------------------------------------- */
+
+.testimonial-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md, 24px);
+  margin-top: var(--spacing-md, 24px);
+  align-items: stretch;
+}
+
+@media (min-width: 768px) {
+  .testimonial-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1100px) {
+  .testimonial-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.testimonial-grid .testimonial-card {
+  width: auto;
+  min-width: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.testimonial-grid .testimonial-card > *:last-child,
+.testimonial-grid .testimonial-card .testimonial-author,
+.testimonial-grid .testimonial-card .testimonial-footer {
+  margin-top: auto;
+}
+
+/* Same equal-height treatment for any grid of "story" / "case-study" /
+   "pillar" / "feature" / "service" / "resource" / "blog" cards — every
+   past regression in "uneven card heights" has been on one of these
+   class names, and the rule is defensively applied wherever the build
+   agent put cards inside a grid. */
+.customer-stories-grid,
+.case-studies-grid,
+.stories-grid,
+.services-grid,
+.pillars-grid,
+.features-grid,
+.resources-grid,
+.blog-grid,
+.pipeline-grid,
+.pricing-grid,
+.results-grid,
+.tiers-grid,
+.plans-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-md, 24px);
+  align-items: stretch;
+}
+
+@media (min-width: 768px) {
+  .customer-stories-grid,
+  .case-studies-grid,
+  .stories-grid,
+  .services-grid,
+  .pillars-grid,
+  .features-grid,
+  .resources-grid,
+  .blog-grid,
+  .pipeline-grid,
+  .pricing-grid,
+  .results-grid,
+  .tiers-grid,
+  .plans-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (min-width: 1100px) {
+  .customer-stories-grid,
+  .case-studies-grid,
+  .stories-grid,
+  .services-grid,
+  .pillars-grid,
+  .features-grid,
+  .resources-grid,
+  .blog-grid,
+  .pipeline-grid,
+  .pricing-grid,
+  .results-grid,
+  .tiers-grid,
+  .plans-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.customer-stories-grid > *,
+.case-studies-grid > *,
+.stories-grid > *,
+.services-grid > *,
+.pillars-grid > *,
+.features-grid > *,
+.resources-grid > *,
+.blog-grid > *,
+.pipeline-grid > *:not(.pipeline-draw):not(svg),
+.pricing-grid > *,
+.results-grid > *,
+.tiers-grid > *,
+.plans-grid > * {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-width: 0;
+}
+
+/* Decorative connector SVGs (PipelineDraw etc.) must not force a
+   grid track of their own — absolutely position them so they don't
+   collapse one card into a narrow column and don't paint a stray
+   line across the card row. */
+.pipeline-grid .pipeline-draw,
+.pipeline-grid > svg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.pipeline-grid,
+.services-grid,
+.pricing-grid,
+.results-grid,
+.resources-grid {
+  position: relative;
+}
+
+@media (max-width: 1099px) {
+  .pipeline-grid .pipeline-draw,
+  .pipeline-grid > svg { display: none; }
+}
+
+/* ---------- CARD-GRID CONNECTOR-LINE CLIPPING ----------
+
+   Retrospective finding (2026-04-20, brillity-digital): the agent
+   emitted a shared accent rule / underline under a grid of peer
+   cards using the wrapper's ::before or a sibling <hr>. That rule
+   ran edge-to-edge across the entire grid and INTO the gaps
+   between cards, reading to the user as "a weird green line going
+   across the cards." Fix by clipping decorative rules at the card
+   boundary rather than at the wrapper boundary.
+
+   Whenever a card-grid wrapper is position:relative and carries
+   a ::before / ::after decorative rule, the rule is now masked
+   away from the inter-card gaps. Build agents that emit
+   underline decorations should prefer a per-card border or
+   gradient rather than a wrapper-level line.
+------------------------------------------------------- */
+
+.pipeline-grid::before,
+.pipeline-grid::after,
+.services-grid::before,
+.services-grid::after,
+.pricing-grid::before,
+.pricing-grid::after,
+.features-grid::before,
+.features-grid::after,
+.pillars-grid::before,
+.pillars-grid::after,
+.results-grid::before,
+.results-grid::after,
+.resources-grid::before,
+.resources-grid::after,
+.customer-stories-grid::before,
+.customer-stories-grid::after,
+.case-studies-grid::before,
+.case-studies-grid::after,
+.testimonial-grid::before,
+.testimonial-grid::after {
+  /* If a grid wrapper carries a decorative horizontal rule as a
+     ::before/::after, keep it BEHIND the cards so card backgrounds
+     mask it in the gaps. Wrapper-level horizontal rules cutting
+     across peer cards at mid-height are the "green line across
+     the cards" anti-pattern. */
+  z-index: 0 !important;
+  pointer-events: none;
+}
+
+.pipeline-grid > :not(svg):not(.pipeline-draw),
+.services-grid > *,
+.pricing-grid > *,
+.features-grid > *,
+.pillars-grid > *,
+.results-grid > *,
+.resources-grid > *,
+.customer-stories-grid > *,
+.case-studies-grid > *,
+.testimonial-grid > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- HORIZONTAL-SCROLL RAIL INVARIANTS ----------
+
+   Knowledge-base rule (2026-04-20): horizontal-scroll "carousel"
+   sections need enforced overflow-x on the rail AND equal-height
+   cards, or the row ships as a static, uneven strip. The build
+   agent has shipped .horizontal-scroller / .scroll-row / .rail
+   wrappers without these defaults multiple times. Shipping the
+   defaults deterministically here, regardless of what the agent
+   emitted in its own CSS.
+------------------------------------------------------- */
+
+.horizontal-scroller,
+.scroll-row,
+.horizontal-rail,
+[data-scroller="horizontal"] {
+  display: flex;
+  gap: clamp(16px, 2vw, 28px);
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 12px; /* keep room for the native scrollbar track */
+  align-items: stretch;
+}
+
+.horizontal-scroller > *,
+.scroll-row > *,
+.horizontal-rail > *,
+[data-scroller="horizontal"] > * {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---------- IMG DEFAULTS INSIDE FIXED-RATIO CONTAINERS ----------
+
+   Knowledge-base rule (2026-04-20): images in fixed-ratio containers
+   must default to object-fit:cover and width/height:100%; intrinsic
+   sizing produced squashed or overflowing images on the last 3
+   builds. Catch every class name the agent has ever used for a
+   fixed-aspect image slot.
+---------------------------------------------------------------- */
+
+.result-media,
+.result-media img,
+.resource-card-media,
+.resource-card-media img,
+.feature-media,
+.feature-media img,
+.service-media,
+.service-media img,
+.case-study-media,
+.case-study-media img,
+.testimonial-media,
+.testimonial-media img,
+.hero-media img,
+.card-media,
+.card-media img,
+[data-media-slot] img {
+  display: block;
+}
+
+.result-media img,
+.resource-card-media img,
+.feature-media img,
+.service-media img,
+.case-study-media img,
+.testimonial-media img,
+.card-media img,
+[data-media-slot] img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+/* ---------- FAQ ACCORDION (consumed by FaqAccordion.tsx) ---------- */
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.faq-item {
+  border: 1px solid var(--color-neutral-200, #e5e7eb);
+  border-radius: var(--radius-md, 8px);
+  background: #ffffff;
+  overflow: hidden;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.faq-item[data-open="true"] {
+  border-color: var(--color-primary, #1a3a6b);
+  box-shadow: 0 8px 24px -12px rgba(26, 58, 107, 0.25);
+}
+
+.faq-question {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-md, 24px);
+  width: 100%;
+  padding: 18px 22px;
+  background: transparent;
+  border: 0;
+  text-align: left;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-primary, #1a3a6b);
+  cursor: pointer;
+  transition: background 200ms ease;
+}
+
+.faq-question:hover { background: var(--color-neutral-50, #f9fafb); }
+
+.faq-question:focus-visible {
+  outline: 2px solid var(--color-primary, #1a3a6b);
+  outline-offset: -2px;
+}
+
+.faq-icon {
+  flex-shrink: 0;
+  color: var(--color-accent, #e8a020);
+  transition: transform 260ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.faq-item[data-open="true"] .faq-icon { transform: rotate(45deg); }
+
+.faq-answer-wrap { overflow: hidden; }
+
+.faq-answer {
+  padding: 0 22px 20px;
+  color: var(--color-neutral-700, #374151);
+  line-height: 1.65;
+  font-size: 15px;
+}
+
+/* When the accordion sits inside a dark section (either explicitly
+   marked data-theme="dark" or detected via the ambient-overlay
+   classes we ship), flip the item surface to a translucent dark
+   glass so the accordion reads as part of the section instead of
+   punching out as a stark white block. User's repeated feedback:
+   "the dropdown fields stand out too much because they are white". */
+[data-theme="dark"] .faq-item,
+.section--overlay-spotlight .faq-item,
+.section--overlay-orb .faq-item,
+.section--overlay-glow .faq-item,
+.section--overlay-mesh .faq-item,
+.section--overlay-grid .faq-item,
+section[style*="var(--color-neutral-50)"] .faq-item,
+section[style*="--color-neutral-50"] .faq-item,
+.bg-dark .faq-item,
+.is-dark .faq-item {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+[data-theme="dark"] .faq-question,
+.section--overlay-spotlight .faq-question,
+.section--overlay-orb .faq-question,
+.section--overlay-glow .faq-question,
+.section--overlay-mesh .faq-question,
+.section--overlay-grid .faq-question,
+section[style*="var(--color-neutral-50)"] .faq-question,
+section[style*="--color-neutral-50"] .faq-question,
+.bg-dark .faq-question,
+.is-dark .faq-question {
+  color: rgba(255, 255, 255, 0.94);
+}
+
+[data-theme="dark"] .faq-question:hover,
+.section--overlay-spotlight .faq-question:hover,
+.section--overlay-orb .faq-question:hover,
+.section--overlay-glow .faq-question:hover,
+.section--overlay-mesh .faq-question:hover,
+.section--overlay-grid .faq-question:hover,
+section[style*="var(--color-neutral-50)"] .faq-question:hover,
+section[style*="--color-neutral-50"] .faq-question:hover,
+.bg-dark .faq-question:hover,
+.is-dark .faq-question:hover { background: rgba(255, 255, 255, 0.05); }
+
+[data-theme="dark"] .faq-answer,
+.section--overlay-spotlight .faq-answer,
+.section--overlay-orb .faq-answer,
+.section--overlay-glow .faq-answer,
+.section--overlay-mesh .faq-answer,
+.section--overlay-grid .faq-answer,
+section[style*="var(--color-neutral-50)"] .faq-answer,
+section[style*="--color-neutral-50"] .faq-answer,
+.bg-dark .faq-answer,
+.is-dark .faq-answer {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* ---------- ANIMATED COUNTER (consumed by AnimatedCounter.tsx) ---------- */
+
+.counter {
+  display: inline-block;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ---------- LOGO MARQUEE (consumed by LogoMarquee.tsx) ----------
+
+   Continuous horizontal auto-scroll for partner / client / integration logos.
+   The component renders children twice inside .logo-marquee-track so the
+   CSS animation can loop seamlessly (-50% translate resets on repeat).
+--------------------------------------------------------------- */
+
+.logo-marquee {
+  position: relative;
+  overflow: hidden;
+  padding: var(--spacing-lg, 32px) 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+  mask-image: linear-gradient(90deg, transparent 0%, #000 10%, #000 90%, transparent 100%);
+}
+
+.logo-marquee-track {
+  display: flex;
+  gap: clamp(32px, 5vw, 72px);
+  width: max-content;
+  animation: modernUILogoMarqueeScroll 40s linear infinite;
+  will-change: transform;
+}
+
+.logo-marquee[data-pause-on-hover="true"]:hover .logo-marquee-track {
+  animation-play-state: paused;
+}
+
+.logo-marquee-item {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(40px, 5vw, 64px);
+  opacity: 0.75;
+  filter: grayscale(1);
+  transition: opacity 240ms ease, filter 240ms ease, transform 240ms ease;
+}
+
+.logo-marquee-item:hover {
+  opacity: 1;
+  filter: grayscale(0);
+  transform: scale(1.04);
+}
+
+.logo-marquee-item img,
+.logo-marquee-item svg {
+  max-height: 100%;
+  width: auto;
+  display: block;
+}
+
+.logo-marquee-item-text {
+  font-size: clamp(18px, 1.8vw, 22px);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--color-neutral-700, #374151);
+  white-space: nowrap;
+}
+
+@keyframes modernUILogoMarqueeScroll {
+  from { transform: translate3d(0, 0, 0); }
+  to   { transform: translate3d(-50%, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .logo-marquee-track { animation: none; }
+}
+
+/* ---------- FOOTER (logo-contrast safety) ----------
+
+   Regression history: on a dark footer, the build agent applied
+   filter: brightness(0) invert(1) to force the logo to white. That
+   works for transparent PNGs with dark marks, but on a PNG with a solid
+   white background (or light marks) it produces a featureless white
+   rectangle — the user reported this as "the logo is just a white
+   box". Instead, never touch the logo pixels and sit it on a subtle
+   white pill so any logo (light, dark, transparent) reads cleanly
+   against the dark footer.
+
+   Keep the background on the <footer> dark so the footer visually
+   terminates the page. .footer-brand wraps the logo + tagline; the
+   logo itself renders inside a rounded-white panel so the logo's own
+   colours are preserved.
+------------------------------------------------- */
+
+/* The footer background is hard-coded (not tokenised) because past sites
+   have shipped with an inverted dark-palette convention where
+   --color-neutral-900 resolves to near-white (e.g. #f8fafc) rather than
+   near-black. Under that palette, var(--color-neutral-900) in the footer
+   rule produced a WHITE footer with white text — unreadable. Hard-coding
+   guarantees the footer always visually terminates the page regardless
+   of which palette convention the design-tokens stage emits. */
+.footer,
+footer.footer,
+.site-footer,
+footer[role="contentinfo"] {
+  background: #0f172a !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.footer a,
+.footer .footer-link,
+.site-footer a,
+footer[role="contentinfo"] a {
+  color: rgba(255, 255, 255, 0.78) !important;
+  text-decoration: none;
+  transition: color 160ms ease;
+}
+
+.footer a:hover,
+.footer .footer-link:hover,
+.site-footer a:hover,
+footer[role="contentinfo"] a:hover {
+  color: #ffffff !important;
+}
+
+.footer-heading,
+.footer h2,
+.footer h3,
+.footer h4 {
+  color: #ffffff !important;
+}
+
+.footer-tagline,
+.footer-bottom,
+.footer p,
+.footer span,
+.footer li {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.footer-brand img {
+  display: block;
+  max-height: 44px;
+  width: auto;
+  /* Explicitly disable any inversion/brightness filter the agent might
+     emit in globals.css — past regressions set filter: brightness(0)
+     invert(1) here, which turns logos with opaque white backgrounds
+     into solid white rectangles. */
+  filter: none !important;
+  background: #ffffff;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+
+/* ---------- ICON ALIGNMENT UTILITIES ----------
+
+   Generated pages consistently produced misaligned icons — e.g. a lucide icon
+   sitting above its text baseline because the <svg> was rendered as a block
+   inside an inline flow. These utilities give the build agent deterministic
+   alignment primitives that ALWAYS produce clean icon/label pairs.
+-------------------------------------------------- */
+
+/* Inline icon + label pair — used in buttons, nav items, list items, pills */
+.icon-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1;
+}
+
+.icon-label > svg,
+.icon-label > .lucide {
+  flex: 0 0 auto;
+  width: 1em;
+  height: 1em;
+  color: currentColor;
+}
+
+/* Standalone icon in a decorative wrapper — feature cards, service cards */
+.icon-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-md, 8px);
+  background: rgba(37, 99, 168, 0.08);
+  color: var(--color-primary, #1a3a6b);
+  flex: 0 0 auto;
+}
+
+.icon-chip > svg,
+.icon-chip > .lucide {
+  width: 24px;
+  height: 24px;
+  color: currentColor;
+}
+
+.icon-chip--lg {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg, 12px);
+}
+
+.icon-chip--lg > svg,
+.icon-chip--lg > .lucide {
+  width: 28px;
+  height: 28px;
+}
+
+.icon-chip--accent {
+  background: linear-gradient(135deg, var(--color-accent, #e8a020) 0%, #f5b53a 100%);
+  color: var(--color-primary, #1a3a6b);
+  box-shadow: 0 4px 14px rgba(232, 160, 32, 0.3);
+}
+
+.icon-chip--outline {
+  background: transparent;
+  border: 1.5px solid var(--color-neutral-200, #e5e7eb);
+  color: var(--color-primary, #1a3a6b);
+}
+
+/* Check icon inside a feature/benefit bullet row */
+.icon-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 999px;
+  background: var(--color-accent, #e8a020);
+  color: #ffffff;
+  flex: 0 0 auto;
+  margin-top: 2px; /* optical centering with first text line */
+}
+
+.icon-check > svg,
+.icon-check > .lucide {
+  width: 12px;
+  height: 12px;
+}

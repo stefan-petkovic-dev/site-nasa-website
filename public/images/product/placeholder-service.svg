@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" role="img" aria-label="Service placeholder">
+  <rect width="800" height="600" fill="#e5e7eb"/>
+  <g fill="#9ca3af" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif" text-anchor="middle">
+    <text x="50%" y="50%" font-size="50" font-weight="600" dy="-0.1em">Service</text>
+    <text x="50%" y="50%" font-size="25" dy="1.6em">placeholder — replace before launch</text>
+  </g>
+</svg>
